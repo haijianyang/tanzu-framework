@@ -8,8 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	clusterctl "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	clusterctltree "sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
@@ -159,10 +158,10 @@ type Client interface {
 	// SetMachineHealthCheck create or update a machine health check object
 	SetMachineHealthCheck(options *SetMachineHealthCheckOptions) error
 	// GetMachineDeployments gets a list of MachineDeployments for a cluster
-	GetMachineDeployments(options GetMachineDeploymentOptions) ([]capi.MachineDeployment, error)
+	GetMachineDeployments(options GetMachineDeploymentOptions) ([]capiv1.MachineDeployment, error)
 	// GetPacificMachineDeployments gets machine deployments from a Pacific cluster
 	// Note: This would be soon deprecated after TKGS and TKGm adopt the clusterclass
-	GetPacificMachineDeployments(options GetMachineDeploymentOptions) ([]capiv1alpha3.MachineDeployment, error)
+	GetPacificMachineDeployments(options GetMachineDeploymentOptions) ([]capiv1.MachineDeployment, error)
 	// SetMachineDeployment create machine deployment in a cluster
 	SetMachineDeployment(options *SetMachineDeploymentOptions) error
 	// DeleteMachineDeployment deletes a machine deployment in a cluster
@@ -191,7 +190,7 @@ type Client interface {
 	// GetClusterPinnipedInfo returns the cluster and pinniped info
 	GetClusterPinnipedInfo(options GetClusterPinnipedInfoOptions) (*ClusterPinnipedInfo, error)
 	// DescribeCluster describes all the objects in the Cluster
-	DescribeCluster(options DescribeTKGClustersOptions) (*clusterctltree.ObjectTree, *capi.Cluster, *clusterctlv1.ProviderList, error)
+	DescribeCluster(options DescribeTKGClustersOptions) (*clusterctltree.ObjectTree, *capiv1.Cluster, *clusterctlv1.ProviderList, error)
 	// DescribeProvider describes all the installed providers
 	DescribeProvider() (*clusterctlv1.ProviderList, error)
 	// DownloadBomFile downloads BomFile from management cluster's config map

@@ -15,7 +15,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctl "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 
 	"github.com/vmware-tanzu/tanzu-framework/pkg/v1/tkg/clusterclient"
@@ -373,7 +373,7 @@ func (c *TkgClient) setCustomImageRepositoryConfiguration(regionalClusterClient 
 }
 
 func (c *TkgClient) setNetworkingConfiguration(regionalClusterClient clusterclient.Client, clusterName, clusterNamespace string) error {
-	cluster := &capi.Cluster{}
+	cluster := &capiv1.Cluster{}
 	err := regionalClusterClient.GetResource(cluster, clusterName, clusterNamespace, nil, nil)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get cluster %q from namespace %q", clusterName, clusterNamespace)

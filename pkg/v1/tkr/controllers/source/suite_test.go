@@ -17,8 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -59,7 +59,7 @@ func TestAPIs(t *testing.T) {
 
 func addToScheme(scheme *runtime.Scheme) {
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = capi.AddToScheme(scheme)
+	_ = capiv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 	_ = runv1.AddToScheme(scheme)
 }
@@ -623,7 +623,7 @@ var _ = Describe("r.Reconcile()", func() {
 		BeforeEach(func() {
 			cm1 = newConfigMap(version11713, map[string]string{constants.BomConfigMapTKRLabel: version11713}, map[string]string{constants.BomConfigMapImageTagAnnotation: "bom-v1.17.13+vmware.1"}, bomContent17)
 			tkr1 := existingTkrFromBom(version11713, bomContent17)
-			conditions.MarkFalse(&tkr1, runv1.ConditionCompatible, "", capi.ConditionSeverityInfo, "")
+			conditions.MarkFalse(&tkr1, runv1.ConditionCompatible, "", capiv1.ConditionSeverityInfo, "")
 			mgmtCluster := newManagementCluster(map[string]string{constants.ManagememtClusterRoleLabel: ""}, map[string]string{constants.TKGVersionKey: "v1.1"})
 			cmMeta = newMetadataConfigMap(metadataContent)
 
@@ -695,7 +695,7 @@ type clientErrOnGetCluster struct {
 }
 
 func (c clientErrOnGetCluster) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-	if _, ok := obj.(*capi.Cluster); !ok {
+	if _, ok := obj.(*capiv1.Cluster); !ok {
 		return c.err
 	}
 	return c.Client.Get(ctx, key, obj)
@@ -711,7 +711,7 @@ func req(o metav1.Object) ctrl.Request {
 	return ctrl.Request{NamespacedName: client.ObjectKey{Namespace: o.GetNamespace(), Name: o.GetName()}}
 }
 
-func getConditionStatusAndMessage(conditions []capi.Condition, conditionType capi.ConditionType) (corev1.ConditionStatus, string) {
+func getConditionStatusAndMessage(conditions []capiv1.Condition, conditionType capiv1.ConditionType) (corev1.ConditionStatus, string) {
 	for _, condition := range conditions {
 		if condition.Type == conditionType {
 			return condition.Status, condition.Message
@@ -742,8 +742,8 @@ func newMetadataConfigMap(content []byte) *corev1.ConfigMap {
 	}
 }
 
-func newManagementCluster(labels, annotations map[string]string) *capi.Cluster {
-	return &capi.Cluster{
+func newManagementCluster(labels, annotations map[string]string) *capiv1.Cluster {
+	return &capiv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "mgmt-cluster",
 			Namespace:   constants.TKGNamespace,

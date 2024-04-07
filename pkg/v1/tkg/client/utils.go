@@ -21,7 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	"github.com/vmware-tanzu/tanzu-framework/pkg/v1/tkg/constants"
 	"github.com/vmware-tanzu/tanzu-framework/pkg/v1/tkg/log"
@@ -273,7 +273,7 @@ func (f ClusterIPFamily) String() string {
 }
 
 // GetIPFamily returns a ClusterIPFamily from the configuration provided.
-func GetIPFamily(c *capi.Cluster) (ClusterIPFamily, error) {
+func GetIPFamily(c *capiv1.Cluster) (ClusterIPFamily, error) {
 	var podCIDRs, serviceCIDRs []string
 	if c.Spec.ClusterNetwork != nil {
 		if c.Spec.ClusterNetwork.Pods != nil {

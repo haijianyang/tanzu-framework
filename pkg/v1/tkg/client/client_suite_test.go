@@ -36,8 +36,7 @@ import (
 	capav1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	capzv1beta1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	capvv1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 
 	tkgsv1alpha2 "github.com/vmware-tanzu/tanzu-framework/apis/run/v1alpha2"
@@ -67,8 +66,7 @@ func TestClient(t *testing.T) {
 var scheme = runtime.NewScheme()
 
 func init() {
-	_ = capi.AddToScheme(scheme)
-	_ = capiv1alpha3.AddToScheme(scheme)
+	_ = capiv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
 	_ = controlplanev1.AddToScheme(scheme)
@@ -364,13 +362,13 @@ var _ = Describe("ValidateVSphereControlPlaneEndpointIP", func() {
 	)
 
 	JustBeforeEach(func() {
-		clusterclient.ListClustersReturns([]capi.Cluster{
+		clusterclient.ListClustersReturns([]capiv1.Cluster{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "my-cluster",
 				},
-				Spec: capi.ClusterSpec{
-					ControlPlaneEndpoint: capi.APIEndpoint{
+				Spec: capiv1.ClusterSpec{
+					ControlPlaneEndpoint: capiv1.APIEndpoint{
 						Host: "10.0.0.0",
 					},
 				},

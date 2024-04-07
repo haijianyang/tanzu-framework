@@ -20,8 +20,7 @@ import (
 	aws "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	azure "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	vsphere "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	docker "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 
@@ -326,7 +325,7 @@ func DoDeleteMachineDeployment(clusterClient clusterclient.Client, options *Dele
 		return apierrors.NewBadRequest("cannot delete last worker node pool in cluster")
 	}
 
-	var toDelete capi.MachineDeployment
+	var toDelete capiv1.MachineDeployment
 	var matched bool
 	for i := range workerMDs {
 		if workerMDs[i].Name == options.Name {
@@ -460,7 +459,7 @@ func (c *TkgClient) DeleteNodePoolForPacificCluster(clusterClient clusterclient.
 }
 
 // GetMachineDeployments retrieves machine deployments for a cluster
-func (c *TkgClient) GetMachineDeployments(options GetMachineDeploymentOptions) ([]capi.MachineDeployment, error) {
+func (c *TkgClient) GetMachineDeployments(options GetMachineDeploymentOptions) ([]capiv1.MachineDeployment, error) {
 	clusterClient, err := c.getClusterClient()
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to create clusterclient")
@@ -470,7 +469,7 @@ func (c *TkgClient) GetMachineDeployments(options GetMachineDeploymentOptions) (
 }
 
 // DoGetMachineDeployments retrieves machine deployments for a cluster given a regional cluster client
-func DoGetMachineDeployments(clusterClient clusterclient.Client, options *GetMachineDeploymentOptions) ([]capi.MachineDeployment, error) {
+func DoGetMachineDeployments(clusterClient clusterclient.Client, options *GetMachineDeploymentOptions) ([]capiv1.MachineDeployment, error) {
 	workers, err := clusterClient.GetMDObjectForCluster(options.ClusterName, options.Namespace)
 	if err != nil {
 		return nil, errors.Wrap(err, "error retrieving machine deployments")
@@ -487,13 +486,13 @@ func DoGetMachineDeployments(clusterClient clusterclient.Client, options *GetMac
 // GetPacificMachineDeployments retrieves machine deployments for a Pacific(TKGS) cluster
 // This is defined separately for Pacific (TKGS) provider because the TKGS and TKGm CAPI versions could be different
 // and this should be deprecated after clusterclass is adopted by both TKGm and TKGS
-func (c *TkgClient) GetPacificMachineDeployments(options GetMachineDeploymentOptions) ([]capiv1alpha3.MachineDeployment, error) {
+func (c *TkgClient) GetPacificMachineDeployments(options GetMachineDeploymentOptions) ([]capiv1.MachineDeployment, error) {
 	clusterClient, err := c.getClusterClient()
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to create clusterclient")
 	}
 
-	mdList := &capiv1alpha3.MachineDeploymentList{}
+	mdList := &capiv1.MachineDeploymentList{}
 	if err := clusterClient.GetResourceList(mdList, options.ClusterName, options.Namespace, nil, nil); err != nil {
 		return nil, errors.Wrap(err, "unable to get machine deployment for the given cluster")
 	}
@@ -663,7 +662,7 @@ func (c *TkgClient) getClusterClient() (clusterclient.Client, error) {
 }
 
 // NormalizeNodePoolName takes a list of machine deployments and strips the cluster name prepend from the name if present
-func NormalizeNodePoolName(workers []capi.MachineDeployment, clusterName string) ([]capi.MachineDeployment, error) {
+func NormalizeNodePoolName(workers []capiv1.MachineDeployment, clusterName string) ([]capiv1.MachineDeployment, error) {
 	nameMatcher, err := regexp.Compile(fmt.Sprintf("(?:(?:%s)?-)?(?P<0>.*)", regexp.QuoteMeta(clusterName)))
 	if err != nil {
 		return nil, err

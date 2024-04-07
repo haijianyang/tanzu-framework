@@ -34,8 +34,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/utils/pointer"
 	capav1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake" //nolint:staticcheck,nolintlint
@@ -73,8 +72,8 @@ vsphereCSI:
 var imageRepository = "registry.tkg.vmware.new"
 
 func init() {
-	_ = capi.AddToScheme(scheme)
-	_ = capiv1alpha3.AddToScheme(scheme)
+	_ = capiv1.AddToScheme(scheme)
+	_ = capiv1.AddToScheme(scheme)
 	_ = capav1beta1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 	_ = controlplanev1.AddToScheme(scheme)
@@ -136,9 +135,9 @@ var _ = Describe("Cluster Client", func() {
 
 		mdReplicas         Replicas
 		kcpReplicas        Replicas
-		machineObjects     []capi.Machine
-		v1a3machineObjects []capiv1alpha3.Machine
-		tkcConditions      []capiv1alpha3.Condition
+		machineObjects     []capiv1.Machine
+		v1a3machineObjects []capiv1.Machine
+		tkcConditions      []capiv1.Condition
 	)
 
 	// Mock the sleep implementation for unit tests
@@ -364,8 +363,8 @@ var _ = Describe("Cluster Client", func() {
 			kcpReplicas = Replicas{SpecReplica: 3, Replicas: 3, ReadyReplicas: 3, UpdatedReplicas: 3}
 			clientset.ListCalls(func(ctx context.Context, o crtclient.ObjectList, opts ...crtclient.ListOption) error {
 				switch o := o.(type) {
-				case *capi.MachineList:
-				case *capi.MachineDeploymentList:
+				case *capiv1.MachineList:
+				case *capiv1.MachineDeploymentList:
 				case *controlplanev1.KubeadmControlPlaneList:
 					o.Items = append(o.Items, getDummyKCP(kcpReplicas.SpecReplica, kcpReplicas.Replicas, kcpReplicas.ReadyReplicas, kcpReplicas.UpdatedReplicas))
 				default:
@@ -427,15 +426,15 @@ var _ = Describe("Cluster Client", func() {
 			clstClient, err = NewClient(kubeConfigPath, "", clusterClientOptions)
 			Expect(err).NotTo(HaveOccurred())
 
-			machineObjects = []capi.Machine{}
+			machineObjects = []capiv1.Machine{}
 			kcpReplicas = Replicas{SpecReplica: 3, Replicas: 3, ReadyReplicas: 3, UpdatedReplicas: 3}
 			mdReplicas = Replicas{SpecReplica: 3, Replicas: 3, ReadyReplicas: 3, UpdatedReplicas: 3}
 
 			clientset.ListCalls(func(ctx context.Context, o crtclient.ObjectList, opts ...crtclient.ListOption) error {
 				switch o := o.(type) {
-				case *capi.MachineList:
+				case *capiv1.MachineList:
 					o.Items = append(o.Items, machineObjects...)
-				case *capi.MachineDeploymentList:
+				case *capiv1.MachineDeploymentList:
 					o.Items = append(o.Items, getDummyMD("fake-version", mdReplicas.SpecReplica, mdReplicas.Replicas, mdReplicas.ReadyReplicas, mdReplicas.UpdatedReplicas))
 				case *controlplanev1.KubeadmControlPlaneList:
 					o.Items = append(o.Items, getDummyKCP(kcpReplicas.SpecReplica, kcpReplicas.Replicas, kcpReplicas.ReadyReplicas, kcpReplicas.UpdatedReplicas))
@@ -458,17 +457,17 @@ var _ = Describe("Cluster Client", func() {
 		Context("When cluster object is present but the infrastructure is not yet provisioned", func() {
 			JustBeforeEach(func() {
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.InfrastructureReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.InfrastructureReadyCondition,
 						Status: corev1.ConditionFalse,
 					})
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.ReadyCondition,
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.ReadyCondition,
 						Status: corev1.ConditionFalse,
 						Reason: "Infrastructure not ready",
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 				err = clstClient.WaitForClusterInitialized("fake-clusterName", "fake-namespace")
@@ -481,21 +480,21 @@ var _ = Describe("Cluster Client", func() {
 		Context("When cluster object is present but the cluster control plane is not yet initialized", func() {
 			JustBeforeEach(func() {
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.InfrastructureReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.InfrastructureReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.ControlPlaneReadyCondition,
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.ControlPlaneReadyCondition,
 						Status: corev1.ConditionFalse,
 					})
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.ReadyCondition,
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.ReadyCondition,
 						Status: corev1.ConditionFalse,
 						Reason: "Cloning @ Machine/tkg-mgmt-vc-control-plane-ds26n",
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 				err = clstClient.WaitForClusterInitialized("fake-clusterName", "fake-namespace")
@@ -508,16 +507,16 @@ var _ = Describe("Cluster Client", func() {
 		Context("When cluster object and machine objects are present and provisioned", func() {
 			JustBeforeEach(func() {
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.InfrastructureReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.InfrastructureReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.ControlPlaneReadyCondition,
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.ControlPlaneReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 				err = clstClient.WaitForClusterReady("fake-clusterName", "fake-namespace", true)
@@ -548,12 +547,12 @@ var _ = Describe("Cluster Client", func() {
 		Context("When cluster object is present but the infrastructure is not yet provisioned", func() {
 			JustBeforeEach(func() {
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.InfrastructureReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.InfrastructureReadyCondition,
 						Status: corev1.ConditionFalse,
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 				err = clstClient.WaitForClusterReady("fake-clusterName", "fake-namespace", true)
@@ -566,17 +565,17 @@ var _ = Describe("Cluster Client", func() {
 		Context("When cluster object is present but the cluster control plane is not yet initialized", func() {
 			JustBeforeEach(func() {
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.InfrastructureReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.InfrastructureReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					conditions = append(conditions, capi.Condition{
-						Type:     capi.ControlPlaneReadyCondition,
-						Severity: capi.ConditionSeverityInfo,
+					conditions = append(conditions, capiv1.Condition{
+						Type:     capiv1.ControlPlaneReadyCondition,
+						Severity: capiv1.ConditionSeverityInfo,
 						Status:   corev1.ConditionFalse,
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 				err = clstClient.WaitForClusterReady("fake-clusterName", "fake-namespace", true)
@@ -590,22 +589,22 @@ var _ = Describe("Cluster Client", func() {
 		Context("When KCP object is present but not yet with all the expected replicas", func() {
 			JustBeforeEach(func() {
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.InfrastructureReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.InfrastructureReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.ControlPlaneReadyCondition,
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.ControlPlaneReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 				clientset.ListCalls(func(ctx context.Context, o crtclient.ObjectList, options ...crtclient.ListOption) error {
 					switch o := o.(type) {
-					case *capi.MachineList:
-					case *capi.MachineDeploymentList:
+					case *capiv1.MachineList:
+					case *capiv1.MachineDeploymentList:
 					case *controlplanev1.KubeadmControlPlaneList:
 						o.Items = append(o.Items, controlplanev1.KubeadmControlPlane{
 							ObjectMeta: metav1.ObjectMeta{Name: "control-plane-0"},
@@ -627,22 +626,22 @@ var _ = Describe("Cluster Client", func() {
 		Context("When KCP object is present and all the expected replicas are available", func() {
 			JustBeforeEach(func() {
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.InfrastructureReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.InfrastructureReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.ControlPlaneReadyCondition,
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.ControlPlaneReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 				clientset.ListCalls(func(ctx context.Context, o crtclient.ObjectList, options ...crtclient.ListOption) error {
 					switch o := o.(type) {
-					case *capi.MachineList:
-					case *capi.MachineDeploymentList:
+					case *capiv1.MachineList:
+					case *capiv1.MachineDeploymentList:
 					case *controlplanev1.KubeadmControlPlaneList:
 						o.Items = append(o.Items, controlplanev1.KubeadmControlPlane{
 							ObjectMeta: metav1.ObjectMeta{Name: "control-plane-0"},
@@ -664,25 +663,25 @@ var _ = Describe("Cluster Client", func() {
 		Context("When MachineDeployment object is present but not yet with all the expected replicas", func() {
 			JustBeforeEach(func() {
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.InfrastructureReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.InfrastructureReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.ControlPlaneReadyCondition,
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.ControlPlaneReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 				clientset.ListCalls(func(ctx context.Context, o crtclient.ObjectList, options ...crtclient.ListOption) error {
 					switch o := o.(type) {
-					case *capi.MachineList:
-					case *capi.MachineDeploymentList:
-						o.Items = append(o.Items, capi.MachineDeployment{
+					case *capiv1.MachineList:
+					case *capiv1.MachineDeploymentList:
+						o.Items = append(o.Items, capiv1.MachineDeployment{
 							ObjectMeta: metav1.ObjectMeta{Name: "control-plane-0"},
-							Spec:       capi.MachineDeploymentSpec{Replicas: pointer.Int32Ptr(1)},
+							Spec:       capiv1.MachineDeploymentSpec{Replicas: pointer.Int32Ptr(1)},
 						})
 					case *controlplanev1.KubeadmControlPlaneList:
 					default:
@@ -700,16 +699,16 @@ var _ = Describe("Cluster Client", func() {
 		Context("When machine object is present but not yet with NodeRef", func() {
 			JustBeforeEach(func() {
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.InfrastructureReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.InfrastructureReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.ControlPlaneReadyCondition,
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.ControlPlaneReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 				clientset.ListCalls(func(ctx context.Context, o crtclient.ObjectList, options ...crtclient.ListOption) error {
@@ -720,14 +719,14 @@ var _ = Describe("Cluster Client", func() {
 							Spec:       controlplanev1.KubeadmControlPlaneSpec{Replicas: pointer.Int32Ptr(1)},
 							Status:     controlplanev1.KubeadmControlPlaneStatus{ReadyReplicas: 1},
 						})
-					case *capi.MachineDeploymentList:
-						o.Items = append(o.Items, capi.MachineDeployment{
+					case *capiv1.MachineDeploymentList:
+						o.Items = append(o.Items, capiv1.MachineDeployment{
 							ObjectMeta: metav1.ObjectMeta{Name: "control-plane-0"},
-							Spec:       capi.MachineDeploymentSpec{Replicas: pointer.Int32Ptr(1)},
-							Status:     capi.MachineDeploymentStatus{ReadyReplicas: 1},
+							Spec:       capiv1.MachineDeploymentSpec{Replicas: pointer.Int32Ptr(1)},
+							Status:     capiv1.MachineDeploymentStatus{ReadyReplicas: 1},
 						})
-					case *capi.MachineList:
-						o.Items = append(o.Items, capi.Machine{
+					case *capiv1.MachineList:
+						o.Items = append(o.Items, capiv1.Machine{
 							ObjectMeta: metav1.ObjectMeta{Name: "machine1"},
 						})
 					default:
@@ -745,32 +744,32 @@ var _ = Describe("Cluster Client", func() {
 		Context("When cluster object, MachineDeployment object, KubeadmControlPlane object and machine objects are present and provisioned", func() {
 			JustBeforeEach(func() {
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.InfrastructureReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.InfrastructureReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.ControlPlaneReadyCondition,
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.ControlPlaneReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 				clientset.ListCalls(func(ctx context.Context, o crtclient.ObjectList, options ...crtclient.ListOption) error {
 					switch o := o.(type) {
-					case *capi.MachineList:
-						o.Items = append(o.Items, capi.Machine{
+					case *capiv1.MachineList:
+						o.Items = append(o.Items, capiv1.Machine{
 							ObjectMeta: metav1.ObjectMeta{Name: "machine1"},
-							Status: capi.MachineStatus{
+							Status: capiv1.MachineStatus{
 								NodeRef: &corev1.ObjectReference{},
 							},
 						})
-					case *capi.MachineDeploymentList:
-						o.Items = append(o.Items, capi.MachineDeployment{
+					case *capiv1.MachineDeploymentList:
+						o.Items = append(o.Items, capiv1.MachineDeployment{
 							ObjectMeta: metav1.ObjectMeta{Name: "control-plane-0"},
-							Spec:       capi.MachineDeploymentSpec{Replicas: pointer.Int32Ptr(1)},
-							Status:     capi.MachineDeploymentStatus{ReadyReplicas: 1},
+							Spec:       capiv1.MachineDeploymentSpec{Replicas: pointer.Int32Ptr(1)},
+							Status:     capiv1.MachineDeploymentStatus{ReadyReplicas: 1},
 						})
 					case *controlplanev1.KubeadmControlPlaneList:
 						o.Items = append(o.Items, controlplanev1.KubeadmControlPlane{
@@ -843,7 +842,7 @@ var _ = Describe("Cluster Client", func() {
 		Context("When clientset Delete return error", func() {
 			JustBeforeEach(func() {
 				clientset.DeleteReturns(errors.New("fake-error"))
-				err = clstClient.DeleteResource(&capi.Cluster{})
+				err = clstClient.DeleteResource(&capiv1.Cluster{})
 			})
 			It("should return an error", func() {
 				Expect(err).To(HaveOccurred())
@@ -853,7 +852,7 @@ var _ = Describe("Cluster Client", func() {
 		Context("When deletion is successful and clientset Delete does not return error", func() {
 			JustBeforeEach(func() {
 				clientset.DeleteReturns(nil)
-				err = clstClient.DeleteResource(&capi.Cluster{})
+				err = clstClient.DeleteResource(&capiv1.Cluster{})
 			})
 			It("should not return error", func() {
 				Expect(err).NotTo(HaveOccurred())
@@ -871,7 +870,7 @@ var _ = Describe("Cluster Client", func() {
 		Context("When clientset Get return error", func() {
 			JustBeforeEach(func() {
 				clientset.GetReturns(errors.New("fake-error-while-get"))
-				err = clstClient.PatchResource(&capi.Cluster{}, "fake-cluster-name", "fake-namespace", "fake-patch-string", types.MergePatchType, nil)
+				err = clstClient.PatchResource(&capiv1.Cluster{}, "fake-cluster-name", "fake-namespace", "fake-patch-string", types.MergePatchType, nil)
 			})
 			It("should return an error", func() {
 				Expect(err).To(HaveOccurred())
@@ -882,7 +881,7 @@ var _ = Describe("Cluster Client", func() {
 			JustBeforeEach(func() {
 				clientset.GetReturns(nil)
 				clientset.PatchReturns(errors.New("fake-error-while-patch"))
-				err = clstClient.PatchResource(&capi.Cluster{}, "fake-cluster-name", "fake-namespace", "fake-patch-string", types.MergePatchType, nil)
+				err = clstClient.PatchResource(&capiv1.Cluster{}, "fake-cluster-name", "fake-namespace", "fake-patch-string", types.MergePatchType, nil)
 			})
 			It("should return an error", func() {
 				Expect(err).To(HaveOccurred())
@@ -893,7 +892,7 @@ var _ = Describe("Cluster Client", func() {
 			JustBeforeEach(func() {
 				clientset.GetReturns(nil)
 				clientset.PatchReturns(nil)
-				err = clstClient.PatchResource(&capi.Cluster{}, "fake-cluster-name", "fake-namespace", "fake-patch-string", types.MergePatchType, nil)
+				err = clstClient.PatchResource(&capiv1.Cluster{}, "fake-cluster-name", "fake-namespace", "fake-patch-string", types.MergePatchType, nil)
 			})
 			It("should not return error", func() {
 				Expect(err).NotTo(HaveOccurred())
@@ -1139,9 +1138,9 @@ var _ = Describe("Cluster Client", func() {
 		Context("When ManagedCluster(pacific cluster) object is present but is not yet provisioned", func() {
 			JustBeforeEach(func() {
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capiv1alpha3.Conditions{}
-					conditions = append(conditions, capiv1alpha3.Condition{
-						Type:    capiv1alpha3.ReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:    capiv1.ReadyCondition,
 						Status:  corev1.ConditionFalse,
 						Reason:  "fake-reason",
 						Message: "fake-message",
@@ -1159,9 +1158,9 @@ var _ = Describe("Cluster Client", func() {
 		Context("When ManagedCluster(pacific cluster) object is present and is running", func() {
 			JustBeforeEach(func() {
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capiv1alpha3.Conditions{}
-					conditions = append(conditions, capiv1alpha3.Condition{
-						Type:   capiv1alpha3.ReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.ReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
 					cluster.(*tkgsv1alpha2.TanzuKubernetesCluster).Status.Conditions = conditions
@@ -1252,8 +1251,8 @@ var _ = Describe("Cluster Client", func() {
 		JustBeforeEach(func() {
 			clientset.ListCalls(func(ctx context.Context, o crtclient.ObjectList, opts ...crtclient.ListOption) error {
 				switch o := o.(type) {
-				case *capi.MachineList:
-				case *capi.MachineDeploymentList:
+				case *capiv1.MachineList:
+				case *capiv1.MachineDeploymentList:
 					o.Items = append(o.Items, getDummyMD("fake-version", mdReplicas.SpecReplica, mdReplicas.Replicas, mdReplicas.ReadyReplicas, mdReplicas.UpdatedReplicas))
 				case *controlplanev1.KubeadmControlPlaneList:
 					o.Items = append(o.Items, getDummyKCP(kcpReplicas.SpecReplica, kcpReplicas.Replicas, kcpReplicas.ReadyReplicas, kcpReplicas.UpdatedReplicas))
@@ -1268,14 +1267,14 @@ var _ = Describe("Cluster Client", func() {
 		Context("When ControlPlaneReady condition is not true", func() {
 			BeforeEach(func() {
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:    capi.ControlPlaneReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:    capiv1.ControlPlaneReadyCondition,
 						Status:  corev1.ConditionFalse,
 						Reason:  "fake-reason",
 						Message: "fake-message",
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 			})
@@ -1288,15 +1287,15 @@ var _ = Describe("Cluster Client", func() {
 		Context("When failure happens while waiting for CP nodes k8s version update", func() {
 			BeforeEach(func() {
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:     capi.ReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:     capiv1.ReadyCondition,
 						Status:   corev1.ConditionFalse,
-						Severity: capi.ConditionSeverityError,
+						Severity: capiv1.ConditionSeverityError,
 						Reason:   "fake-reason",
 						Message:  "fake-message",
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 			})
@@ -1310,12 +1309,12 @@ var _ = Describe("Cluster Client", func() {
 			BeforeEach(func() {
 				discoveryClient.ServerVersionReturns(nil, errors.New("fake-error-while-getting-k8s-server-version"))
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.ControlPlaneReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.ControlPlaneReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 			})
@@ -1329,12 +1328,12 @@ var _ = Describe("Cluster Client", func() {
 				version := version.Info{GitVersion: "fake-wrong-version"}
 				discoveryClient.ServerVersionReturns(&version, nil)
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.ControlPlaneReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.ControlPlaneReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 			})
@@ -1348,12 +1347,12 @@ var _ = Describe("Cluster Client", func() {
 				version := version.Info{GitVersion: "fake-version"}
 				discoveryClient.ServerVersionReturns(&version, nil)
 				clientset.GetCalls(func(ctx context.Context, namespace types.NamespacedName, cluster crtclient.Object) error {
-					conditions := capi.Conditions{}
-					conditions = append(conditions, capi.Condition{
-						Type:   capi.ControlPlaneReadyCondition,
+					conditions := capiv1.Conditions{}
+					conditions = append(conditions, capiv1.Condition{
+						Type:   capiv1.ControlPlaneReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
-					cluster.(*capi.Cluster).Status.Conditions = conditions
+					cluster.(*capiv1.Cluster).Status.Conditions = conditions
 					return nil
 				})
 			})
@@ -1375,14 +1374,14 @@ var _ = Describe("Cluster Client", func() {
 
 			kcpReplicas = Replicas{SpecReplica: 3, Replicas: 3, ReadyReplicas: 3, UpdatedReplicas: 3}
 			mdReplicas = Replicas{SpecReplica: 3, Replicas: 3, ReadyReplicas: 3, UpdatedReplicas: 3}
-			machineObjects = []capi.Machine{}
+			machineObjects = []capiv1.Machine{}
 		})
 		JustBeforeEach(func() {
 			clientset.ListCalls(func(ctx context.Context, o crtclient.ObjectList, opts ...crtclient.ListOption) error {
 				switch o := o.(type) {
-				case *capi.MachineList:
+				case *capiv1.MachineList:
 					o.Items = append(o.Items, machineObjects...)
-				case *capi.MachineDeploymentList:
+				case *capiv1.MachineDeploymentList:
 					o.Items = append(o.Items, getDummyMD("fake-version", mdReplicas.SpecReplica, mdReplicas.Replicas, mdReplicas.ReadyReplicas, mdReplicas.UpdatedReplicas))
 				case *controlplanev1.KubeadmControlPlaneList:
 					o.Items = append(o.Items, getDummyKCP(kcpReplicas.SpecReplica, kcpReplicas.Replicas, kcpReplicas.ReadyReplicas, kcpReplicas.UpdatedReplicas))
@@ -1474,12 +1473,12 @@ var _ = Describe("Cluster Client", func() {
 			clstClient, err = NewClient(kubeConfigPath, "", clusterClientOptions)
 			Expect(err).NotTo(HaveOccurred())
 
-			v1a3machineObjects = []capiv1alpha3.Machine{}
+			v1a3machineObjects = []capiv1.Machine{}
 		})
 		JustBeforeEach(func() {
 			clientset.ListCalls(func(ctx context.Context, o crtclient.ObjectList, opts ...crtclient.ListOption) error {
 				switch o := o.(type) {
-				case *capiv1alpha3.MachineList:
+				case *capiv1.MachineList:
 					o.Items = append(o.Items, v1a3machineObjects...)
 				default:
 					return errors.New("invalid object type")
@@ -1496,11 +1495,11 @@ var _ = Describe("Cluster Client", func() {
 
 		Context("When cluster 'Ready` condition was 'False' and severity was set to 'Error' ", func() {
 			BeforeEach(func() {
-				tkcConditions = capiv1alpha3.Conditions{}
-				tkcConditions = append(tkcConditions, capiv1alpha3.Condition{
-					Type:     capiv1alpha3.ReadyCondition,
+				tkcConditions = capiv1.Conditions{}
+				tkcConditions = append(tkcConditions, capiv1.Condition{
+					Type:     capiv1.ReadyCondition,
 					Status:   corev1.ConditionFalse,
-					Severity: capiv1alpha3.ConditionSeverityError,
+					Severity: capiv1.ConditionSeverityError,
 				})
 			})
 			It("should return an update failed error", func() {
@@ -1511,11 +1510,11 @@ var _ = Describe("Cluster Client", func() {
 
 		Context("When cluster 'Ready` condition was 'False' and severity was set to 'Warning'", func() {
 			BeforeEach(func() {
-				tkcConditions = capiv1alpha3.Conditions{}
-				tkcConditions = append(tkcConditions, capiv1alpha3.Condition{
-					Type:     capiv1alpha3.ReadyCondition,
+				tkcConditions = capiv1.Conditions{}
+				tkcConditions = append(tkcConditions, capiv1.Condition{
+					Type:     capiv1.ReadyCondition,
 					Status:   corev1.ConditionFalse,
-					Severity: capiv1alpha3.ConditionSeverityWarning,
+					Severity: capiv1.ConditionSeverityWarning,
 				})
 			})
 			It("should return an update in progress error", func() {
@@ -1526,9 +1525,9 @@ var _ = Describe("Cluster Client", func() {
 		Context("When cluster 'Ready` condition was 'True'", func() {
 			Context("When some worker machine objects has old k8s version", func() {
 				BeforeEach(func() {
-					tkcConditions = capiv1alpha3.Conditions{}
-					tkcConditions = append(tkcConditions, capiv1alpha3.Condition{
-						Type:   capiv1alpha3.ReadyCondition,
+					tkcConditions = capiv1.Conditions{}
+					tkcConditions = append(tkcConditions, capiv1.Condition{
+						Type:   capiv1.ReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
 					v1a3machineObjects = append(v1a3machineObjects, getv1alpha3DummyMachine("fake-machine-1", "fake-new-version", false))
@@ -1541,9 +1540,9 @@ var _ = Describe("Cluster Client", func() {
 			})
 			Context("When all worker machine objects has new k8s version", func() {
 				BeforeEach(func() {
-					tkcConditions = capiv1alpha3.Conditions{}
-					tkcConditions = append(tkcConditions, capiv1alpha3.Condition{
-						Type:   capiv1alpha3.ReadyCondition,
+					tkcConditions = capiv1.Conditions{}
+					tkcConditions = append(tkcConditions, capiv1.Condition{
+						Type:   capiv1.ReadyCondition,
 						Status: corev1.ConditionTrue,
 					})
 					v1a3machineObjects = append(v1a3machineObjects, getv1alpha3DummyMachine("fake-machine-1", "fake-new-version", false))
@@ -1565,7 +1564,7 @@ var _ = Describe("Cluster Client", func() {
 		Context("When create api return error", func() {
 			JustBeforeEach(func() {
 				clientset.CreateReturns(errors.New("fake-error"))
-				err = clstClient.CreateResource(&capi.Machine{}, "fake-resource", "fake-namespace")
+				err = clstClient.CreateResource(&capiv1.Machine{}, "fake-resource", "fake-namespace")
 			})
 			It("should return an error", func() {
 				Expect(err).To(HaveOccurred())
@@ -1575,7 +1574,7 @@ var _ = Describe("Cluster Client", func() {
 		Context("When create api returns successfully", func() {
 			JustBeforeEach(func() {
 				clientset.CreateReturns(nil)
-				err = clstClient.CreateResource(&capi.Machine{}, "fake-resource", "fake-namespace")
+				err = clstClient.CreateResource(&capiv1.Machine{}, "fake-resource", "fake-namespace")
 			})
 			It("should not return an error", func() {
 				Expect(err).NotTo(HaveOccurred())
@@ -1593,7 +1592,7 @@ var _ = Describe("Cluster Client", func() {
 		Context("When update api return error", func() {
 			JustBeforeEach(func() {
 				clientset.UpdateReturns(errors.New("fake-error"))
-				err = clstClient.UpdateResource(&capi.Machine{}, "fake-resource", "fake-namespace")
+				err = clstClient.UpdateResource(&capiv1.Machine{}, "fake-resource", "fake-namespace")
 			})
 			It("should return an error", func() {
 				Expect(err).To(HaveOccurred())
@@ -1603,7 +1602,7 @@ var _ = Describe("Cluster Client", func() {
 		Context("When update api returns successfully", func() {
 			JustBeforeEach(func() {
 				clientset.UpdateReturns(nil)
-				err = clstClient.UpdateResource(&capi.Machine{}, "fake-resource", "fake-namespace")
+				err = clstClient.UpdateResource(&capiv1.Machine{}, "fake-resource", "fake-namespace")
 			})
 			It("should not return an error", func() {
 				Expect(err).NotTo(HaveOccurred())
@@ -2572,8 +2571,8 @@ func getDummyKCP(specReplica, replicas, readyReplicas, updatedReplicas int32) co
 	return kcp
 }
 
-func getDummyMD(currentK8sVersion string, specReplica, replicas, readyReplicas, updatedReplicas int32) capi.MachineDeployment {
-	md := capi.MachineDeployment{}
+func getDummyMD(currentK8sVersion string, specReplica, replicas, readyReplicas, updatedReplicas int32) capiv1.MachineDeployment {
+	md := capiv1.MachineDeployment{}
 	md.Name = "fake-md-name"
 	md.Namespace = fakeMdNameSpace
 	md.Spec.Template.Spec.Version = &currentK8sVersion
@@ -2593,8 +2592,8 @@ func getDummySecret(secretName string, secretData map[string][]byte, secretStrin
 	return secret
 }
 
-func getDummyMachine(name, currentK8sVersion string, isCP bool) capi.Machine {
-	machine := capi.Machine{}
+func getDummyMachine(name, currentK8sVersion string, isCP bool) capiv1.Machine {
+	machine := capiv1.Machine{}
 	machine.Name = name
 	machine.Namespace = fakeMdNameSpace
 	machine.Spec.Version = &currentK8sVersion
@@ -2605,9 +2604,9 @@ func getDummyMachine(name, currentK8sVersion string, isCP bool) capi.Machine {
 	return machine
 }
 
-func getv1alpha3DummyMachine(name, currentK8sVersion string, isCP bool) capiv1alpha3.Machine { //nolint:unparam
+func getv1alpha3DummyMachine(name, currentK8sVersion string, isCP bool) capiv1.Machine { //nolint:unparam
 	// TODO: Add test cases where isCP is true, currently there are no such tests
-	machine := capiv1alpha3.Machine{}
+	machine := capiv1.Machine{}
 	machine.Name = name
 	machine.Namespace = fakeMdNameSpace
 	machine.Spec.Version = &currentK8sVersion

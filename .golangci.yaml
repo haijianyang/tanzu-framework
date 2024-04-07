@@ -124,6 +124,8 @@ issues:
         - dupl
         - gocritic
         - funlen
+        - revive
+        - stylecheck
 
     # https://github.com/go-critic/go-critic/issues/926
     - linters:

@@ -6,7 +6,7 @@ package v1alpha2
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // TanzuKubernetesClusterPhase is a type for the Tanzu Kubernetes cluster's
@@ -48,6 +48,7 @@ const (
 
 // TanzuKubernetesClusterSpec defines the desired state of TanzuKubernetesCluster: its nodes, the software installed on those nodes and
 // the way that software should be configured.
+//
 //nolint:gocritic
 type TanzuKubernetesClusterSpec struct {
 	// Topology specifies the topology for the Tanzu Kubernetes cluster: the number, purpose, and organization of the nodes which
@@ -158,6 +159,7 @@ type TopologySettings struct {
 
 // Distribution specifies the version of software which should be installed on the control plane and worker nodes. This
 // version information encompasses Kubernetes and its dependencies, the base OS of the node, and add-ons.
+//
 //nolint:gocritic
 type Distribution struct {
 	// Version specifies the fully-qualified desired Kubernetes distribution version of the Tanzu Kubernetes cluster. If the
@@ -317,6 +319,7 @@ type Storage struct {
 }
 
 // TanzuKubernetesClusterStatus defines the observed state of TanzuKubernetesCluster.
+//
 //nolint:gocritic
 type TanzuKubernetesClusterStatus struct {
 	// APIEndpoints represents the endpoints to communicate with the control plane.
@@ -339,7 +342,7 @@ type TanzuKubernetesClusterStatus struct {
 
 	// Conditions defines current service state of the TanzuKubernetestCluster.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions capiv1.Conditions `json:"conditions,omitempty"`
 
 	// Total number of replicas in worker node pools.
 	// +optional
@@ -348,12 +351,12 @@ type TanzuKubernetesClusterStatus struct {
 
 // GetConditions returns the list of conditions for a TanzuKubernetesCluster
 // object.
-func (r *TanzuKubernetesCluster) GetConditions() clusterv1.Conditions {
+func (r *TanzuKubernetesCluster) GetConditions() capiv1.Conditions {
 	return r.Status.Conditions
 }
 
 // SetConditions sets the status conditions for a TanzuKubernetesCluster object
-func (r *TanzuKubernetesCluster) SetConditions(conditions clusterv1.Conditions) {
+func (r *TanzuKubernetesCluster) SetConditions(conditions capiv1.Conditions) {
 	r.Status.Conditions = conditions
 }
 
@@ -408,16 +411,16 @@ type AddonStatus struct {
 
 	// Conditions defines the current conditions of the add-on.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions capiv1.Conditions `json:"conditions,omitempty"`
 }
 
 // GetConditions returns the list of conditions for an add-on
-func (as *AddonStatus) GetConditions() clusterv1.Conditions {
+func (as *AddonStatus) GetConditions() capiv1.Conditions {
 	return as.Conditions
 }
 
 // SetConditions sets the conditions for an add-on
-func (as *AddonStatus) SetConditions(conditions clusterv1.Conditions) {
+func (as *AddonStatus) SetConditions(conditions capiv1.Conditions) {
 	as.Conditions = conditions
 }
 
@@ -440,6 +443,7 @@ func (as *AddonStatus) SetStatus(addonName, version string) {
 // +kubebuilder:printcolumn:name="Updates Available",type=string,JSONPath=.status.conditions[?(@.type=='UpdatesAvailable')].message
 
 // TanzuKubernetesCluster is the schema for the Tanzu Kubernetes Grid service for vSphere API.
+//
 //nolint:gocritic
 type TanzuKubernetesCluster struct {
 	metav1.TypeMeta   `json:",inline"`

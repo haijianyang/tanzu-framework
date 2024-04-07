@@ -10,8 +10,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -27,16 +26,16 @@ const (
 )
 
 type clusterObjects struct {
-	cluster  capi.Cluster
+	cluster  capiv1.Cluster
 	kcp      controlplanev1.KubeadmControlPlane
-	mds      []capi.MachineDeployment
-	machines []capi.Machine
+	mds      []capiv1.MachineDeployment
+	machines []capiv1.Machine
 }
 
 type clusterObjectsForPacific struct {
 	cluster  tkgsv1alpha2.TanzuKubernetesCluster
-	mds      []capiv1alpha3.MachineDeployment
-	machines []capiv1alpha3.Machine
+	mds      []capiv1.MachineDeployment
+	machines []capiv1.Machine
 }
 
 // ################### Helpers for Pacific ##################
@@ -44,7 +43,7 @@ type clusterObjectsForPacific struct {
 func getRunningCPMachineCountForPacific(clusterInfo *clusterObjectsForPacific) int {
 	cpMachineCount := 0
 	for i := range clusterInfo.machines {
-		if _, labelExists := clusterInfo.machines[i].GetLabels()[capiv1alpha3.MachineControlPlaneLabelName]; labelExists && strings.EqualFold(clusterInfo.machines[i].Status.Phase, "running") {
+		if _, labelExists := clusterInfo.machines[i].GetLabels()[capiv1.MachineControlPlaneLabelName]; labelExists && strings.EqualFold(clusterInfo.machines[i].Status.Phase, "running") {
 			cpMachineCount++
 		}
 	}
@@ -66,13 +65,13 @@ func getClusterObjectsMapForPacific(clusterClient clusterclient.Client, listOpti
 		return nil, errors.Wrap(err, "unable to get list of clusters")
 	}
 
-	var mdList capiv1alpha3.MachineDeploymentList
+	var mdList capiv1.MachineDeploymentList
 	err = clusterClient.ListResources(&mdList, listOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get list of MachineDeployment objects")
 	}
 
-	var machineList capiv1alpha3.MachineList
+	var machineList capiv1.MachineList
 	err = clusterClient.ListResources(&machineList, listOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get list of Machine objects")
@@ -88,7 +87,7 @@ func getClusterObjectsMapForPacific(clusterClient clusterclient.Client, listOpti
 	}
 
 	for i := range mdList.Items {
-		clusterName, labelExists := mdList.Items[i].GetLabels()[capi.ClusterLabelName]
+		clusterName, labelExists := mdList.Items[i].GetLabels()[capiv1.ClusterLabelName]
 		if !labelExists {
 			continue
 		}
@@ -101,7 +100,7 @@ func getClusterObjectsMapForPacific(clusterClient clusterclient.Client, listOpti
 	}
 
 	for i := range machineList.Items {
-		clusterName, labelExists := machineList.Items[i].GetLabels()[capi.ClusterLabelName]
+		clusterName, labelExists := machineList.Items[i].GetLabels()[capiv1.ClusterLabelName]
 		if !labelExists {
 			continue
 		}
@@ -143,7 +142,7 @@ func getClusterPlanForPacific(clusterInfo *clusterObjectsForPacific) string {
 // ################### Helpers for Non-Pacific cluster info ##################
 
 func getClusterObjectsMap(clusterClient clusterclient.Client, listOptions *crtclient.ListOptions) (map[string]*clusterObjects, error) { // nolint:funlen
-	var clusters capi.ClusterList
+	var clusters capiv1.ClusterList
 	err := clusterClient.ListResources(&clusters, listOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get list of clusters")
@@ -155,13 +154,13 @@ func getClusterObjectsMap(clusterClient clusterclient.Client, listOptions *crtcl
 		return nil, errors.Wrap(err, "unable to get list of KubeadmControlPlane objects")
 	}
 
-	var mdList capi.MachineDeploymentList
+	var mdList capiv1.MachineDeploymentList
 	err = clusterClient.ListResources(&mdList, listOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get list of MachineDeployment objects")
 	}
 
-	var machineList capi.MachineList
+	var machineList capiv1.MachineList
 	err = clusterClient.ListResources(&machineList, listOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get list of Machine objects")
@@ -176,7 +175,7 @@ func getClusterObjectsMap(clusterClient clusterclient.Client, listOptions *crtcl
 	}
 
 	for i := range kcpList.Items {
-		clusterName, labelExists := kcpList.Items[i].GetLabels()[capi.ClusterLabelName]
+		clusterName, labelExists := kcpList.Items[i].GetLabels()[capiv1.ClusterLabelName]
 		if !labelExists {
 			continue
 		}
@@ -190,7 +189,7 @@ func getClusterObjectsMap(clusterClient clusterclient.Client, listOptions *crtcl
 	}
 
 	for i := range mdList.Items {
-		clusterName, labelExists := mdList.Items[i].GetLabels()[capi.ClusterLabelName]
+		clusterName, labelExists := mdList.Items[i].GetLabels()[capiv1.ClusterLabelName]
 		if !labelExists {
 			continue
 		}
@@ -204,7 +203,7 @@ func getClusterObjectsMap(clusterClient clusterclient.Client, listOptions *crtcl
 	}
 
 	for i := range machineList.Items {
-		clusterName, labelExists := machineList.Items[i].GetLabels()[capi.ClusterLabelName]
+		clusterName, labelExists := machineList.Items[i].GetLabels()[capiv1.ClusterLabelName]
 		if !labelExists {
 			continue
 		}
@@ -246,7 +245,7 @@ func getClusterWorkerCount(clusterInfo *clusterObjects) string {
 	return cpReplicas
 }
 
-func getClusterReplicas(mds []capi.MachineDeployment) (int32, int32, int32, int32) {
+func getClusterReplicas(mds []capiv1.MachineDeployment) (int32, int32, int32, int32) {
 	var readyReplicas int32
 	var specReplicas int32
 	var replicas int32

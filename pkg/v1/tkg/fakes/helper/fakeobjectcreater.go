@@ -22,8 +22,7 @@ import (
 	capav1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	capzv1beta1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	capvv1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 
@@ -50,11 +49,11 @@ func GetAllCAPIClusterObjects(options TestAllClusterComponentOptions) []runtime.
 }
 
 // NewCluster returns a CAPI v1aplha3.Cluster object
-func NewCluster(options TestAllClusterComponentOptions) *capi.Cluster {
-	cluster := &capi.Cluster{
+func NewCluster(options TestAllClusterComponentOptions) *capiv1.Cluster {
+	cluster := &capiv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Cluster",
-			APIVersion: capi.GroupVersion.String(),
+			APIVersion: capiv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      options.ClusterName,
@@ -66,7 +65,7 @@ func NewCluster(options TestAllClusterComponentOptions) *capi.Cluster {
 				options.ClusterOptions.LastObservedTimestamp),
 		},
 	}
-	cluster.Spec = capi.ClusterSpec{
+	cluster.Spec = capiv1.ClusterSpec{
 		ControlPlaneRef: &corev1.ObjectReference{
 			Kind:       "KubeadmControlPlane",
 			Namespace:  options.Namespace,
@@ -74,7 +73,7 @@ func NewCluster(options TestAllClusterComponentOptions) *capi.Cluster {
 			APIVersion: controlplanev1.GroupVersion.String(),
 		},
 	}
-	cluster.Status = capi.ClusterStatus{
+	cluster.Status = capiv1.ClusterStatus{
 		Phase:               options.ClusterOptions.Phase,
 		InfrastructureReady: options.ClusterOptions.InfrastructureReady,
 		ControlPlaneReady:   options.ClusterOptions.ControlPlaneReady,
@@ -88,7 +87,7 @@ func NewKCP(options TestAllClusterComponentOptions) runtime.Object {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kcp-" + options.ClusterName,
 			Namespace: options.Namespace,
-			Labels:    map[string]string{capi.ClusterLabelName: options.ClusterName},
+			Labels:    map[string]string{capiv1.ClusterLabelName: options.ClusterName},
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -130,16 +129,16 @@ func NewKCP(options TestAllClusterComponentOptions) runtime.Object {
 func NewMD(options TestAllClusterComponentOptions) []runtime.Object {
 	mds := []runtime.Object{}
 	for index, MDOptions := range options.ListMDOptions {
-		md := &capi.MachineDeployment{
+		md := &capiv1.MachineDeployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "md-" + strconv.Itoa(index) + "-" + options.ClusterName,
 				Namespace: options.Namespace,
-				Labels:    map[string]string{capi.ClusterLabelName: options.ClusterName},
+				Labels:    map[string]string{capiv1.ClusterLabelName: options.ClusterName},
 			},
-			Spec: capi.MachineDeploymentSpec{
+			Spec: capiv1.MachineDeploymentSpec{
 				Replicas: &MDOptions.SpecReplicas,
-				Template: capi.MachineTemplateSpec{
-					Spec: capi.MachineSpec{
+				Template: capiv1.MachineTemplateSpec{
+					Spec: capiv1.MachineSpec{
 						InfrastructureRef: corev1.ObjectReference{
 							Kind:      MDOptions.InfrastructureTemplate.Kind,
 							Name:      MDOptions.InfrastructureTemplate.Name,
@@ -148,7 +147,7 @@ func NewMD(options TestAllClusterComponentOptions) []runtime.Object {
 					},
 				},
 			},
-			Status: capi.MachineDeploymentStatus{
+			Status: capiv1.MachineDeploymentStatus{
 				Replicas:        MDOptions.Replicas,
 				ReadyReplicas:   MDOptions.ReadyReplicas,
 				UpdatedReplicas: MDOptions.UpdatedReplicas,
@@ -163,21 +162,21 @@ func NewMD(options TestAllClusterComponentOptions) []runtime.Object {
 func NewMachines(options TestAllClusterComponentOptions) []runtime.Object {
 	machines := []runtime.Object{}
 	for i, machineOption := range options.MachineOptions {
-		machine := &capi.Machine{
+		machine := &capiv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: options.Namespace,
 				Name:      "machine-" + strconv.Itoa(i) + options.ClusterName,
-				Labels:    map[string]string{capi.ClusterLabelName: options.ClusterName},
+				Labels:    map[string]string{capiv1.ClusterLabelName: options.ClusterName},
 			},
-			Spec: capi.MachineSpec{
+			Spec: capiv1.MachineSpec{
 				Version: &machineOption.K8sVersion,
 			},
-			Status: capi.MachineStatus{
+			Status: capiv1.MachineStatus{
 				Phase: machineOption.Phase,
 			},
 		}
 		if machineOption.IsCP {
-			machine.Labels[capi.MachineControlPlaneLabelName] = "true"
+			machine.Labels[capiv1.MachineControlPlaneLabelName] = "true"
 		}
 		machines = append(machines, machine)
 	}
@@ -406,16 +405,16 @@ func NewPacificCluster(options TestAllClusterComponentOptions) runtime.Object {
 
 // NewMDForPacific returns new v1aplha2.MachineDeployment object
 func NewMDForPacific(options TestAllClusterComponentOptions) runtime.Object {
-	md := &capiv1alpha3.MachineDeployment{
+	md := &capiv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "md-" + options.ClusterName,
 			Namespace: options.Namespace,
-			Labels:    map[string]string{capiv1alpha3.ClusterLabelName: options.ClusterName},
+			Labels:    map[string]string{capiv1.ClusterLabelName: options.ClusterName},
 		},
-		Spec: capiv1alpha3.MachineDeploymentSpec{
+		Spec: capiv1.MachineDeploymentSpec{
 			Replicas: &options.ListMDOptions[0].SpecReplicas,
 		},
-		Status: capiv1alpha3.MachineDeploymentStatus{
+		Status: capiv1.MachineDeploymentStatus{
 			Replicas:        options.ListMDOptions[0].Replicas,
 			ReadyReplicas:   options.ListMDOptions[0].ReadyReplicas,
 			UpdatedReplicas: options.ListMDOptions[0].UpdatedReplicas,
@@ -428,21 +427,21 @@ func NewMDForPacific(options TestAllClusterComponentOptions) runtime.Object {
 func NewMachinesForPacific(options TestAllClusterComponentOptions) []runtime.Object {
 	machines := []runtime.Object{}
 	for i, machineOption := range options.MachineOptions {
-		machine := &capiv1alpha3.Machine{
+		machine := &capiv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: options.Namespace,
 				Name:      "machine-" + strconv.Itoa(i) + options.ClusterName,
-				Labels:    map[string]string{capi.ClusterLabelName: options.ClusterName},
+				Labels:    map[string]string{capiv1.ClusterLabelName: options.ClusterName},
 			},
-			Spec: capiv1alpha3.MachineSpec{
+			Spec: capiv1.MachineSpec{
 				Version: &machineOption.K8sVersion,
 			},
-			Status: capiv1alpha3.MachineStatus{
+			Status: capiv1.MachineStatus{
 				Phase: machineOption.Phase,
 			},
 		}
 		if machineOption.IsCP {
-			machine.Labels[capi.MachineControlPlaneLabelName] = "true"
+			machine.Labels[capiv1.MachineControlPlaneLabelName] = "true"
 		}
 		machines = append(machines, machine)
 	}
@@ -511,13 +510,13 @@ func NewServiceAccount(options TestServiceAccountOption) runtime.Object {
 }
 
 // NewMachineHealthCheck returns new MachineHealthCheck object
-func NewMachineHealthCheck(options TestMachineHealthCheckOption) *capi.MachineHealthCheck {
-	mhc := &capi.MachineHealthCheck{
+func NewMachineHealthCheck(options TestMachineHealthCheckOption) *capiv1.MachineHealthCheck {
+	mhc := &capiv1.MachineHealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      options.Name,
 			Namespace: options.Namespace,
 		},
-		Spec: capi.MachineHealthCheckSpec{
+		Spec: capiv1.MachineHealthCheckSpec{
 			ClusterName: options.ClusterName,
 		},
 	}

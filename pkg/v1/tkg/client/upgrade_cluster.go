@@ -16,8 +16,8 @@ import (
 	capav1beta1 "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	capzv1beta1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	capvv1beta1 "sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capikubeadmv1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	capdv1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 
@@ -96,7 +96,7 @@ type clusterUpgradeInfo struct {
 
 	KCPObjectName      string
 	KCPObjectNamespace string
-	MDObjects          []capi.MachineDeployment
+	MDObjects          []capiv1.MachineDeployment
 	ClusterName        string
 	ClusterNamespace   string
 
@@ -105,14 +105,14 @@ type clusterUpgradeInfo struct {
 
 // UpgradeCluster upgrades workload and management clusters k8s version
 // Steps:
-// 1. Verify k8s version
-// 2. Get the Upgrade configuration by reading BOM file to get the ImageTag and ImageRepository information for CoreDNS and Etcd,
-//    Read AWS_AMI_ID map from BOM for AWS upgrade scenario. Also use command line argument options to fill the upgrade configuration
-// 3. Create InfrastructureMachineTemplates(VSphereMachineTemplate, AWSMachineTemplate, AzureMachineTemplate) required for upgrade
-// 4. Patch KCP object to upgrade control-plane nodes
-// 5. Wait for k8s version to be updated for the cluster
-// 6. Patch MachineDeployment object to upgrade worker nodes
-// 7. Wait for k8s version to be updated for all worker nodes
+//  1. Verify k8s version
+//  2. Get the Upgrade configuration by reading BOM file to get the ImageTag and ImageRepository information for CoreDNS and Etcd,
+//     Read AWS_AMI_ID map from BOM for AWS upgrade scenario. Also use command line argument options to fill the upgrade configuration
+//  3. Create InfrastructureMachineTemplates(VSphereMachineTemplate, AWSMachineTemplate, AzureMachineTemplate) required for upgrade
+//  4. Patch KCP object to upgrade control-plane nodes
+//  5. Wait for k8s version to be updated for the cluster
+//  6. Patch MachineDeployment object to upgrade worker nodes
+//  7. Wait for k8s version to be updated for all worker nodes
 func (c *TkgClient) UpgradeCluster(options *UpgradeClusterOptions) error { // nolint:funlen,gocyclo
 	if options == nil {
 		return errors.New("invalid upgrade cluster options nil")
@@ -1237,10 +1237,10 @@ func (c *TkgClient) verifyK8sVersion(clusterClient clusterclient.Client, newVers
 	return nil
 }
 
-func listCAPIv1alpha3Clusters(clusterClient clusterclient.Client) ([]capiv1alpha3.Cluster, error) {
-	var clusterList capiv1alpha3.ClusterList
+func listCAPIv1alpha3Clusters(clusterClient clusterclient.Client) ([]capiv1.Cluster, error) {
+	var clusterList capiv1.ClusterList
 	if err := clusterClient.ListResources(&clusterList); err != nil {
-		return []capiv1alpha3.Cluster{}, err
+		return []capiv1.Cluster{}, err
 	}
 
 	return clusterList.Items, nil
